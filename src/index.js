@@ -45,7 +45,7 @@ const loadImages = async (query, pageNum) => {
     if (results.length === 0) {
       displaMessage(
         'warning',
-        'Sorry, there are not images matching your search query. Please try again'
+        'Sorry, there are no images matching your search query. Please try again'
       );
       return;
     }

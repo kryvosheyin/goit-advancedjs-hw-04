@@ -36,6 +36,30 @@ const displaMessage = (type, title) => {
   });
 };
 
+const createImageCards = hits =>
+  hits
+    .map(
+      hit => `
+  <div class="image-card">
+    <a class="gallery-link" href="${hit.largeImageURL}">
+      <img src="${hit.previewURL}" alt="${hit.tags}" />
+    </a>
+    <div class="image-metadata">
+      ${['likes', 'views', 'comments', 'downloads']
+        .map(
+          label => `
+        <div class="metadata">
+          <p class="label">${label.charAt(0).toUpperCase() + label.slice(1)}</p>
+          <p>${hit[label]}</p>
+        </div>`
+        )
+        .join('')}
+    </div>
+  </div>
+`
+    )
+    .join('');
+
 const loadImages = async (query, pageNum, perPage) => {
   try {
     const response = await axios.get('', {
@@ -50,10 +74,8 @@ const loadImages = async (query, pageNum, perPage) => {
       },
     });
     const results = response.data.hits;
-    console.log(results.length);
     totalHits = response.data.totalHits;
     consumedHits += results.length;
-    console.log('total hits:', totalHits, 'consumed hits: ', consumedHits);
     console.log(results);
 
     if (totalHits === 0) {
@@ -64,37 +86,7 @@ const loadImages = async (query, pageNum, perPage) => {
       return;
     }
 
-    const imageCards = results
-      .map(hit => {
-        return `<div class="image-card">
-            <a class="gallery-link" href="${hit.largeImageURL}">
-            <img
-            src="${hit.previewURL}"
-            alt="${hit.tags}"
-            />
-            </a>
-            <div class="image-metadata">
-            <div class="metadata">
-            <p class="label">Likes</p>
-            <p>${hit.likes}</p>
-            </div>
-            <div class="metadata">
-            <p class="label">Views</p>
-            <p>${hit.views}</p>
-            </div>
-            <div class="metadata">
-            <p class="label">Comments</p>
-            <p>${hit.comments}</p>
-            </div>
-            <div class="metadata">
-            <p class="label">Downloads</p>
-            <p>${hit.downloads}</p>
-            </div>
-            </div>
-            </div>`;
-      })
-      .join('');
-
+    const imageCards = createImageCards(results);
     resultContainer.insertAdjacentHTML('beforeend', imageCards);
 
     simpleLightbox.refresh();

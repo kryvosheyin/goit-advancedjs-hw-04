@@ -11,11 +11,11 @@ const API_KEY = '44478278-1149efa35d94f549e3de6ad11';
 
 const form = document.querySelector('.search-form');
 const resultContainer = document.getElementById('results');
-let scrollAnchor = document.getElementById('scroll-anchor');
+const scrollAnchor = document.getElementById('scroll-anchor');
 let totalHits = 0;
 let page = 1;
-let searchQuery;
 let consumedHits = 0;
+let searchQuery;
 
 const simpleLightbox = new SimpleLightbox('.gallery-link', {
   captionsData: 'alt',
@@ -91,7 +91,6 @@ const loadImages = async (query, pageNum, perPage) => {
 
     simpleLightbox.refresh();
     if (totalHits - consumedHits <= 0) {
-      searchQuery = resultContainer.lastChild;
       displaMessage(
         'warning',
         'You have reached the end of the search results'
@@ -134,19 +133,21 @@ form.addEventListener('submit', async event => {
   const formData = new FormData(form);
   searchQuery = formData.get('searchQuery').trim();
 
+  if (!searchQuery) {
+    displaMessage('warning', 'Please enter the search query');
+    return;
+  }
+
   page = 1;
   consumedHits = 0;
-  if (searchQuery) {
-    resultContainer.innerHTML = '';
-    await loadImages(searchQuery, page);
-    if (totalHits > 0) {
-      displaMessage(
-        'success',
-        `Hooray! We found ${totalHits} images for your search`
-      );
-      observer.observe(scrollAnchor);
-    }
-  } else {
-    displaMessage('warning', 'Please enter the search query');
+
+  resultContainer.innerHTML = '';
+  await loadImages(searchQuery, page);
+  if (totalHits > 0) {
+    displaMessage(
+      'success',
+      `Hooray! We found ${totalHits} images for your search`
+    );
+    observer.observe(scrollAnchor);
   }
 });

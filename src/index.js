@@ -11,11 +11,20 @@ const API_KEY = '44478278-1149efa35d94f549e3de6ad11';
 
 const form = document.querySelector('.search-form');
 const resultContainer = document.getElementById('results');
-const scrollAnchor = document.getElementById('scroll-anchor');
+let scrollAnchor = document.getElementById('scroll-anchor');
 let totalHits = 0;
 let page = 1;
 let searchQuery;
-let simpleLightbox;
+let consumedHits = 0;
+
+const simpleLightbox = new SimpleLightbox('.gallery-link', {
+  captionsData: 'alt',
+  captionDelay: 100,
+  close: false,
+  showCounter: false,
+  animationSlide: false,
+  fadeSpeed: 250,
+});
 
 const displaMessage = (type, title) => {
   const bgColor = type === 'warning' ? 'orange' : 'green';
@@ -27,7 +36,7 @@ const displaMessage = (type, title) => {
   });
 };
 
-const loadImages = async (query, pageNum) => {
+const loadImages = async (query, pageNum, perPage) => {
   try {
     const response = await axios.get('', {
       params: {
@@ -36,13 +45,18 @@ const loadImages = async (query, pageNum) => {
         image_type: 'photo',
         per_page: 40,
         page: pageNum,
+        orientation: 'horizontal',
+        safesearch: true,
       },
     });
     const results = response.data.hits;
+    console.log(results.length);
     totalHits = response.data.totalHits;
+    consumedHits += results.length;
+    console.log('total hits:', totalHits, 'consumed hits: ', consumedHits);
     console.log(results);
 
-    if (results.length === 0) {
+    if (totalHits === 0) {
       displaMessage(
         'warning',
         'Sorry, there are no images matching your search query. Please try again'
@@ -80,24 +94,23 @@ const loadImages = async (query, pageNum) => {
             </div>`;
       })
       .join('');
-    resultContainer.innerHTML += imageCards;
 
-    if (!simpleLightbox) {
-      simpleLightbox = new SimpleLightbox('.gallery-link', {
-        captionsData: 'alt',
-        captionDelay: 100,
-        close: false,
-        showCounter: false,
-        animationSlide: false,
-        fadeSpeed: 250,
-      });
-    } else {
-      simpleLightbox.refresh();
+    resultContainer.insertAdjacentHTML('beforeend', imageCards);
+
+    simpleLightbox.refresh();
+    if (totalHits - consumedHits <= 0) {
+      searchQuery = resultContainer.lastChild;
+      displaMessage(
+        'warning',
+        'You have reached the end of the search results'
+      );
+      observer.unobserve(scrollAnchor);
+      return;
     }
   } catch (error) {
     console.error('Error getting the data from Pixabay: ', error);
     iziToast.error({
-      title: Error,
+      title: 'Error',
       message: 'Failed to fetch data, please try again',
       position: 'topRight',
     });
@@ -107,11 +120,7 @@ const loadImages = async (query, pageNum) => {
 const observer = new IntersectionObserver(
   entries => {
     if (entries[0].isIntersecting) {
-      if (resultContainer.childElementCount + 40 >= totalHits) {
-        displaMessage(
-          'warning',
-          'You have reached the end of the search results'
-        );
+      if (totalHits <= 40) {
         observer.unobserve(scrollAnchor);
       } else {
         page++;
@@ -131,9 +140,10 @@ form.addEventListener('submit', async event => {
   observer.unobserve(scrollAnchor);
 
   const formData = new FormData(form);
-  searchQuery = formData.get('searchQuery');
-  page = 1;
+  searchQuery = formData.get('searchQuery').trim();
 
+  page = 1;
+  consumedHits = 0;
   if (searchQuery) {
     resultContainer.innerHTML = '';
     await loadImages(searchQuery, page);
